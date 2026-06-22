@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#0d9488" />
+
+    <title>Sealbox — password-lock any file in your browser</title>
+    <meta
+      name="description"
+      content="Lock a file with a password, right in your browser. AES-256 encryption, nothing uploaded, no account. Your file never leaves your device."
+    />
+
+    <meta property="og:title" content="Sealbox — password-lock any file in your browser" />
+    <meta
+      property="og:description"
+      content="Lock a file with a password, right in your browser. AES-256, nothing uploaded, works offline."
+    />
+    <meta property="og:type" content="website" />
+
+    <!-- CSP: only self. No network calls needed at runtime — encryption is fully local. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none';"
+    />
+
+    <link rel="stylesheet" href="/src/styles/main.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <a class="brand" href="/">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="6" y="14" width="20" height="14" rx="3" fill="currentColor" />
+            <path d="M11 14 v-3 a5 5 0 0 1 10 0 v3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.55" />
+            <circle cx="16" cy="20" r="2.4" fill="var(--bg-base)" />
+            <rect x="15" y="21" width="2" height="4" rx="1" fill="var(--bg-base)" />
+          </svg>
+          <span class="brand-name">seal<span class="brand-name-accent">box</span></span>
+        </a>
+        <nav class="topbar-nav">
+          <button type="button" class="nav-link" data-modal="tmpl-how">how it works</button>
+          <button type="button" class="nav-link" data-modal="tmpl-threat">threat model</button>
+          <button type="button" class="nav-link" data-modal="tmpl-about">about</button>
+          <button type="button" class="nav-link icon-only" id="drawer-toggle" aria-label="Toggle activity log" title="Activity log">≡</button>
+        </nav>
+      </header>
+
+      <div class="main-grid">
+        <main class="main-content">
+          <section class="hero">
+            <h1>Lock any file with a password</h1>
+            <p class="lede">
+              Encryption happens entirely on your device using AES-256.
+              <button type="button" class="trust-badge" data-modal="tmpl-threat">
+                🔒 Nothing is ever uploaded
+              </button>
+            </p>
+          </section>
+
+          <!-- Drop zone -->
+          <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Choose a file or drag one here">
+            <input type="file" id="file-input" hidden />
+            <div class="dropzone-inner">
+              <div class="dropzone-icon" aria-hidden="true">📁</div>
+              <div class="dropzone-text">
+                <strong>Drop a file here</strong>
+                <span>or click to choose · any file type · stays on your device</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Workspace (revealed once a file is chosen) -->
+          <div id="workspace" class="workspace" hidden>
+            <div class="file-row">
+              <div class="file-meta">
+                <span class="file-name" id="file-name">—</span>
+                <span class="file-size" id="file-size"></span>
+              </div>
+              <div class="mode-badge" id="mode-badge"></div>
+              <button type="button" class="btn-text" id="clear-file">change file</button>
+            </div>
+
+            <div class="password-block">
+              <label class="field-label" for="password" id="password-label">Password</label>
+              <div class="password-input-wrap">
+                <input
+                  type="password"
+                  id="password"
+                  class="password-input"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="Enter a password"
+                />
+                <button type="button" class="btn-icon" id="toggle-visibility" aria-label="Show password">👁</button>
+                <button type="button" class="btn-icon" id="generate-pass" aria-label="Generate a strong passphrase" title="Generate a strong passphrase">🎲</button>
+              </div>
+              <div class="strength" id="strength" hidden>
+                <div class="strength-bar"><span id="strength-fill"></span></div>
+                <span class="strength-label" id="strength-label"></span>
+              </div>
+            </div>
+
+            <div class="options" id="lock-options">
+              <label class="toggle">
+                <input type="checkbox" id="compress-toggle" />
+                <span>Compress before encrypting (smaller output for text, logs, code)</span>
+              </label>
+            </div>
+
+            <button type="button" class="btn-primary" id="run-btn" disabled>Lock file</button>
+
+            <!-- Progress -->
+            <div id="progress" class="progress" hidden>
+              <div class="progress-head">
+                <span id="progress-phase">Working…</span>
+                <span id="progress-stats" class="progress-stats"></span>
+              </div>
+              <div class="progress-track"><span id="progress-fill"></span></div>
+            </div>
+
+            <!-- Result -->
+            <div id="result" class="result" hidden>
+              <div class="result-head">
+                <span class="result-icon" id="result-icon">✅</span>
+                <div>
+                  <strong id="result-title">Done</strong>
+                  <span id="result-sub" class="result-sub"></span>
+                </div>
+              </div>
+              <div class="result-actions">
+                <button type="button" class="btn-primary" id="download-btn">Download</button>
+                <button type="button" class="btn-secondary" id="share-btn" hidden>Share</button>
+                <button type="button" class="btn-secondary" id="copy-pass-btn" hidden>Copy password</button>
+              </div>
+            </div>
+
+            <!-- Error -->
+            <div id="error" class="error-box" hidden>
+              <span class="error-icon">⚠️</span>
+              <span id="error-msg"></span>
+              <button type="button" class="btn-text" id="retry-btn">Try again</button>
+            </div>
+          </div>
+        </main>
+
+        <aside id="event-drawer" class="event-drawer"></aside>
+      </div>
+
+      <footer class="site-footer">
+        <span class="foot-meta">
+          <span class="dot-mini" id="status-dot"></span>
+          <span id="status-label">ready</span>
+          · AES-GCM-256 · runs offline
+        </span>
+        <span class="attribution">
+          Built by <a href="https://benrichardson.dev/" target="_blank" rel="noopener noreferrer">benrichardson.dev</a>
+        </span>
+      </footer>
+    </div>
+
+    <!-- Modals -->
+    <template id="tmpl-how">
+      <div class="modal-content">
+        <h2 class="modal-title">how it works</h2>
+        <ol class="steps">
+          <li>
+            <span class="step-num">01</span>
+            <div>
+              <h3>drop a file</h3>
+              <p>Pick any file. It's read into this browser tab's memory only — never sent anywhere. Sealbox automatically detects whether you're locking a new file or unlocking an existing <code>.sealbox</code>.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">02</span>
+            <div>
+              <h3>choose a password</h3>
+              <p>Type a password, or hit the dice for a strong random passphrase. Your password is stretched into a 256-bit key with <span class="glossary-link" data-term="pbkdf2">PBKDF2</span> and a per-file random <span class="glossary-link" data-term="salt">salt</span>.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">03</span>
+            <div>
+              <h3>encrypt locally</h3>
+              <p>A Web Worker encrypts the file in 1&nbsp;MB chunks with <span class="glossary-link" data-term="aes-gcm">AES-GCM-256</span>. Each chunk gets a unique <span class="glossary-link" data-term="nonce">nonce</span> and a tamper-proof <span class="glossary-link" data-term="auth-tag">auth tag</span>. Big files stream so your browser never runs out of memory.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">04</span>
+            <div>
+              <h3>download the .sealbox</h3>
+              <p>You get a <code>.sealbox</code> file containing the ciphertext, the salt, and the (encrypted) original filename. Send it however you like — email, USB, chat.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">05</span>
+            <div>
+              <h3>recipient unlocks</h3>
+              <p>They drop the <code>.sealbox</code> into Sealbox, type the password you shared over a separate channel, and the original file is recovered — name and all. Wrong password? The auth tag fails and nothing is produced.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </template>
+
+    <template id="tmpl-threat">
+      <div class="modal-content">
+        <h2 class="modal-title">threat model</h2>
+        <div class="security-grid">
+          <div class="security-card good">
+            <h3>what's protected</h3>
+            <ul>
+              <li>File contents — AES-GCM-256 authenticated encryption, per chunk.</li>
+              <li>The original filename and type — stored inside an encrypted frame.</li>
+              <li>Your password — never stored, never transmitted; key derivation uses 310,000 PBKDF2 rounds with a per-file salt.</li>
+              <li>Integrity — any byte flipped in the <code>.sealbox</code> makes the auth tag fail, so tampering can't go unnoticed.</li>
+            </ul>
+          </div>
+          <div class="security-card bad">
+            <h3>what isn't</h3>
+            <ul>
+              <li>The file's <em>size</em> — the ciphertext is roughly as long as the original, so its size is visible to anyone holding the <code>.sealbox</code>.</li>
+              <li>The fact that it's a Sealbox file — the <code>SEALBOX</code> magic header is plaintext so the tool can recognise its own format.</li>
+              <li>A weak password — Sealbox can't make "1234" strong. The strength meter warns you; pick a real passphrase.</li>
+            </ul>
+          </div>
+          <div class="security-card">
+            <h3>trust surface</h3>
+            <ul>
+              <li>The static site bundle served by GitHub Pages (and the TLS chain) — for the <em>initial page load only</em>.</li>
+              <li>After loading, Sealbox works fully offline. Encryption makes <strong>zero</strong> network calls — confirm it yourself in DevTools → Network.</li>
+              <li>No analytics, no cookies, no third-party fonts, no telemetry.</li>
+              <li>You and your recipient must share the password over a channel you trust.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template id="tmpl-about">
+      <div class="modal-content">
+        <h2 class="modal-title">about sealbox</h2>
+        <p>Sealbox is a free, open-source tool that password-protects files using the browser's built-in <span class="glossary-link" data-term="aes-gcm">Web Crypto</span> API. Everything happens on your device — there is no server, no upload, and no account.</p>
+        <p>It exists because every "encrypt a file online" service asks you to upload the very file you're trying to keep private. Sealbox doesn't.</p>
+        <p class="about-links">
+          <a href="https://github.com/ben-gy/sealbox" target="_blank" rel="noopener noreferrer">Source code</a>
+          ·
+          <a href="https://benrichardson.dev/" target="_blank" rel="noopener noreferrer">benrichardson.dev</a>
+        </p>
+      </div>
+    </template>
+
+    <div id="modal-overlay" class="modal-overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true">
+        <button type="button" class="modal-close" id="modal-close" aria-label="Close">✕</button>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
