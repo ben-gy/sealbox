@@ -56,7 +56,7 @@ describe('estimateStrength', () => {
     expect(estimateStrength('1234').score).toBeLessThanOrEqual(1);
   });
   it('rates a generated passphrase strongly', () => {
-    const s = estimateStrength(generatePassphrase(5));
+    const s = estimateStrength(generatePassphrase());
     expect(s.score).toBeGreaterThanOrEqual(3);
   });
   it('penalises repeated characters', () => {

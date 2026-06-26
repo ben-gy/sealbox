@@ -9,8 +9,14 @@
 
 import { WORD_LIST } from './data/wordlist';
 
-/** Pick `count` words uniformly at random and join with `separator`. */
-export function generatePassphrase(count = 5, separator = '-'): string {
+/**
+ * Pick `count` words uniformly at random and join with `separator`.
+ *
+ * The default of 6 words keeps the generated passphrase comfortably above the
+ * "strong" threshold of the strength meter for every word-length combination in
+ * the list — a 5-word phrase of short words can dip to "fair".
+ */
+export function generatePassphrase(count = 6, separator = '-'): string {
   if (count < 1) throw new Error('Word count must be at least 1');
   const words: string[] = [];
   for (let i = 0; i < count; i++) {

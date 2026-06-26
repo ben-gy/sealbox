@@ -83,6 +83,15 @@
   padding: 0;
 }
 
+/* The `hidden` attribute must always win over the class-level `display`
+   rules below (.workspace, .progress, .result, .modal-overlay, …). An
+   attribute selector and a class selector share the same specificity, so
+   without this the author rules would override the UA `[hidden]` rule and
+   every collapsed panel would render on load. */
+[hidden] {
+  display: none !important;
+}
+
 html {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;

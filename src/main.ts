@@ -167,13 +167,14 @@ function wirePassword(): void {
   });
 
   $('generate-pass').addEventListener('click', () => {
-    const phrase = generatePassphrase(5);
+    const words = 6;
+    const phrase = generatePassphrase(words);
     pw.type = 'text';
     pw.value = phrase;
     $('toggle-visibility').classList.add('active');
     updateStrength();
     updateRunEnabled();
-    emit('crypto', 'info', `Generated a 5-word passphrase (~${Math.round(passphraseEntropyBits(5))} bits of entropy)`);
+    emit('crypto', 'info', `Generated a ${words}-word passphrase (~${Math.round(passphraseEntropyBits(words))} bits of entropy)`);
   });
 }
 
