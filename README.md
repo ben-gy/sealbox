@@ -96,7 +96,7 @@ metadata frame records the total chunk count, so truncation is detected too.
 - You trust the static site bundle from GitHub Pages and the TLS chain — for the
   *initial page load only*.
 - After loading, encryption makes **zero** network calls. Verify in DevTools.
-- No analytics, no cookies, no third-party fonts, no telemetry.
+- No cookies, no fingerprinting, no third-party fonts. Anonymous, cookie-less page-view counts via Cloudflare Web Analytics — no personal data, no cross-site tracking.
 - You and your recipient must exchange the password over a channel you trust.
 
 ## stack
