@@ -106,8 +106,9 @@ metadata frame records the total chunk count, so truncation is detected too.
 - Vitest for unit tests (42 tests across crypto, passphrase, and format modules)
 - GitHub Pages for hosting, deployed via GitHub Actions
 
-No runtime dependencies. No analytics, no cookies, no third-party fonts, no
-telemetry.
+No runtime dependencies. No cookies, no fingerprinting, no third-party fonts.
+The only analytics is Cloudflare Web Analytics — anonymous, cookie-less
+page-view counts; no personal data, no cross-site tracking.
 
 ## local development
 
