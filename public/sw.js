@@ -3,7 +3,7 @@
  * visit. Strategy: stale-while-revalidate for same-origin GET requests. There are
  * no runtime API calls to worry about; this only caches the app's own assets.
  */
-const CACHE = 'sealbox-v1';
+const CACHE = 'sealbox-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
