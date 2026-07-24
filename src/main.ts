@@ -6,11 +6,6 @@
  * crypto runs in worker.ts. No business logic lives here beyond orchestration.
  */
 
-// feedback:begin (managed by hub/scripts/feedback/backfill.mjs)
-import { mountFeedback } from './feedback';
-mountFeedback();
-// feedback:end
-
 import './styles/main.css';
 import { looksLikeSealbox, MAGIC, VERSION } from './crypto';
 import { emit, mountEventDrawer } from './eventlog';
